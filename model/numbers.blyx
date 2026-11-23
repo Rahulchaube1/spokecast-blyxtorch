@@ -1,0 +1,18 @@
+// Blyx 0.2.1 has no numeric cast. Binary search maps a bounded f64 to an i64.
+pub fn floor_integer(value: f64, low: i64, high: i64) -> i64 {
+    let mut left = low;
+    let mut right = high;
+    while left <= right {
+        let middle = left + (right - left) / 2;
+        if at([middle], 0) <= value { left = middle + 1; }
+        else { right = middle - 1; }
+    }
+    right
+}
+
+pub fn nearest_ride(value: f64) -> i64 {
+    let shifted = value + 0.5;
+    let mut high = 1;
+    while at([high], 0) <= shifted { high *= 2; }
+    floor_integer(shifted, 0, high)
+}

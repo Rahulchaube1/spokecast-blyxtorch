@@ -1,0 +1,9 @@
+// Reference release configuration for the original UCI hourly series.
+pub fn train_start() -> str { "2011-01-01" }
+pub fn train_end() -> str { "2012-10-31" }
+pub fn holdout_start() -> str { "2012-11-01" }
+pub fn holdout_end() -> str { "2012-12-31" }
+pub fn epochs() -> i64 { 35 }
+pub fn batch_size() -> i64 { 64 }
+pub fn learning_rate() -> str { "0.003" }
+pub fn seed() -> i64 { 19 }

@@ -1,0 +1,139 @@
+use std::cli;
+use std::text;
+use std::fs;
+use network;
+use features;
+use numbers;
+use settings;
+
+fn bad(message: str) { stderr_line(message); process_exit(2); }
+
+// Each bin stores an integral sum and count. The last bin covers all training hours.
+fn training_bins(training: arglist) -> arglist {
+    let mut bins = args_new();
+    let mut group = 0;
+    while group <= 48 {
+        let hour = int_text(group % 24);
+        let day = int_text(group / 24);
+        let mut total = 0;
+        let mut count = 0;
+        let mut i = 1;
+        while i < args_len(training) {
+            let row = args_at(training, i);
+            if group == 48 || text_before(row, ",") == hour {
+                let fields = text_split(row, ",");
+                if group == 48 || args_at(fields, 2) == day {
+                    let observed = text_number(args_at(fields, 6));
+                    let whole = floor_integer(observed, 0, 1000000);
+                    if at([whole], 0) != observed { bad("Invalid observed count"); }
+                    total += whole;
+                    count += 1;
+                }
+            }
+            i += 1;
+        }
+        if count == 0 { bad("Empty training baseline group"); }
+        bins = args_push(bins, int_text(total));
+        bins = args_push(bins, int_text(count));
+        group += 1;
+    }
+    bins
+}
+
+fn bin_mean(bins: arglist, group: i64) -> f64 {
+    text_number(args_at(bins, group * 2)) / text_number(args_at(bins, group * 2 + 1))
+}
+
+// method 0 = training mean, 1 = hour/day training mean, 2 = native network.
+fn score(rows: arglist, predictions: arglist, bins: arglist, method: i64, column: i64, filter: str) -> vector {
+    let mut n = 0.0;
+    let mut absolute = 0.0;
+    let mut squared = 0.0;
+    let mut target_sum = 0.0;
+    let mut target_squares = 0.0;
+    let mut i = 1;
+    while i < args_len(rows) {
+        let fields = text_split(args_at(rows, i), ",");
+        if column < 0 || args_at(fields, column) == filter {
+            let actual = text_number(args_at(fields, 6));
+            let mut prediction = 0.0;
+            if method == 2 {
+                prediction = text_number(args_at(predictions, i)) * count_scale();
+                if prediction < 0.0 { prediction = 0.0; }
+            } else {
+                let mut group = 48;
+                if method == 1 {
+                    group = floor_integer(text_number(args_at(fields, 0)), 0, 23)
+                        + 24 * floor_integer(text_number(args_at(fields, 2)), 0, 1);
+                }
+                prediction = bin_mean(bins, group);
+            }
+            let error = prediction - actual;
+            if error < 0.0 { absolute -= error; } else { absolute += error; }
+            squared += error * error;
+            target_sum += actual;
+            target_squares += actual * actual;
+            n += 1.0;
+        }
+        i += 1;
+    }
+    if n == 0.0 { bad("Empty evaluation group"); }
+    let variation = target_squares - target_sum * target_sum / n;
+    let mut r2 = 0.0;
+    if variation > 0.0 { r2 = 1.0 - squared / variation; }
+    [n, absolute / n, btx_sqrt(squared / n), r2, variation]
+}
+
+fn print_score(name: str, scores: vector) {
+    print!("    \""); print!(name); print!("\": {\"hours\": "); print!(at(scores, 0));
+    print!(", \"mae\": "); print!(at(scores, 1)); print!(", \"rmse\": "); print!(at(scores, 2));
+    print!(", \"r2\": ");
+    if at(scores, 4) > 0.0 { print!(at(scores, 3)); } else { print!("null"); }
+    print!("}");
+}
+
+fn main() {
+    let args = cli_args();
+    if args_len(args) != 5 { bad("Usage: evaluate metrics|experiment train-raw.csv holdout-raw.csv predictions.csv hour.csv"); }
+    let mode = args_at(args, 0);
+    let training = text_lines(read_text(args_at(args, 1)));
+    let rows = text_lines(read_text(args_at(args, 2)));
+    let predictions = text_lines(read_text(args_at(args, 3)));
+    let source = text_lines(read_text(args_at(args, 4)));
+    let n = args_len(training) - 1;
+    let held = args_len(rows) - 1;
+    if n < 1 || held < 1 || args_len(predictions) != held + 1 || args_at(predictions, 0) != "prediction0" {
+        bad("Mismatched prediction and observation files");
+    }
+    let bins = training_bins(training);
+    let model = score(rows, predictions, bins, 2, -1, "");
+    let grouped = score(rows, predictions, bins, 1, -1, "");
+    if mode == "metrics" {
+        println!("{");
+        print!("  \"sourceRows\": "); print!(args_len(source) - 1); println!(",");
+        print!("  \"excludedSevereWeather\": "); print!(args_len(source) - 1 - n - held); println!(",");
+        print!("  \"trainingRows\": "); print!(n); println!(","); print!("  \"testRows\": "); print!(held); println!(",");
+        print!("  \"trainStart\": \""); print!(train_start()); print!("\", \"trainEnd\": \""); print!(train_end()); println!("\",");
+        print!("  \"testStart\": \""); print!(holdout_start()); print!("\", \"testEnd\": \""); print!(holdout_end()); println!("\",");
+        print!("  \"mae\": "); print!(at(model, 1)); println!(","); print!("  \"rmse\": "); print!(at(model, 2)); println!(",");
+        print!("  \"r2\": "); print!(at(model, 3)); println!(","); print!("  \"baselineMae\": "); print!(at(grouped, 1)); println!(",");
+        print!("  \"architecture\": [31, 16, 1], \"epochs\": "); print!(epochs()); print!(", \"batch\": "); print!(batch_size());
+        print!(", \"rate\": "); print!(learning_rate()); print!(", \"seed\": "); println!(seed());
+        println!("}");
+    } else {
+        if mode != "experiment" { bad("Unknown report mode"); }
+        println!("{"); print!("  \"holdoutStart\": \""); print!(holdout_start()); print!("\", \"holdoutEnd\": \""); print!(holdout_end()); println!("\",");
+        print!("  \"trainingHours\": "); print!(n); println!(","); print!("  \"holdoutHours\": "); print!(held); println!(",");
+        println!("  \"comparison\": {");
+        print_score("training_mean", score(rows, predictions, bins, 0, -1, "")); println!(",");
+        print_score("hour_and_day_type_mean", grouped); println!(","); print_score("blyxtorch", model); println!();
+        println!("  },"); println!("  \"modelByGroup\": {"); println!("    \"workday\": {");
+        print_score("workday", score(rows, predictions, bins, 2, 2, "1")); println!(",");
+        print_score("weekend_or_holiday", score(rows, predictions, bins, 2, 2, "0")); println!();
+        println!("    },"); println!("    \"weather\": {");
+        print_score("clear", score(rows, predictions, bins, 2, 3, "1")); println!(",");
+        print_score("mist", score(rows, predictions, bins, 2, 3, "2")); println!(",");
+        print_score("light_rain_or_snow", score(rows, predictions, bins, 2, 3, "3")); println!();
+        println!("    }"); println!("  }"); println!("}");
+    }
+}

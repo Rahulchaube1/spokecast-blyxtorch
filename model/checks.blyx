@@ -1,0 +1,36 @@
+use forecast;
+use planner;
+
+// Shared by the native CLI and Vercel's WebAssembly check.
+pub fn check_model() -> i64 {
+    let temperatures = [-8.0, 0.0, 12.0, 24.0, 39.0];
+    let mut checked = 0;
+    let mut month = 1;
+    while month <= 12 {
+        let mut day = 0;
+        while day <= 1 {
+            let mut sky = 1;
+            while sky <= 3 {
+                let mut t = 0;
+                while t < len(temperatures) {
+                    let mut hour = 0;
+                    while hour < 24 {
+                        let result = estimate(hour, month, day, sky, at(temperatures, t));
+                        if result < 0.0 || result - result != 0.0 { return -1; }
+                        checked += 1;
+                        hour += 1;
+                    }
+                    t += 1;
+                }
+                sky += 1;
+            }
+            day += 1;
+        }
+        month += 1;
+    }
+    if estimate(24, 1, 1, 1, 20.0) != -1.0 || estimate(1, 0, 1, 1, 20.0) != -1.0 ||
+       estimate(1, 1, 2, 1, 20.0) != -1.0 || estimate(1, 1, 1, 4, 20.0) != -1.0 ||
+       estimate(1, 1, 1, 1, 40.0) != -1.0 || estimate(1, 1, 1, 1, 0.0 / 0.0) != -1.0 { return -1; }
+    if daily_forecast(0, 1, 1, 1, -9) != "null" || preset_json(3) != "null" { return -1; }
+    checked
+}

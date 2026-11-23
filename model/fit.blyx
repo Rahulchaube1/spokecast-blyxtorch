@@ -1,0 +1,16 @@
+use std::cli;
+use std::text;
+use settings;
+use network;
+
+fn main() {
+    let args = cli_args();
+    if args_len(args) != 1 { stderr_line("Usage: fit training.csv"); process_exit(2); }
+    let mut job = args_push(args_new(), "train");
+    job = args_push(job, args_at(args, 0));
+    job = args_push(job, int_text(epochs()));
+    job = args_push(job, learning_rate());
+    job = args_push(job, int_text(batch_size()));
+    job = args_push(job, "adam");
+    bt_command(args_push(job, int_text(seed())));
+}

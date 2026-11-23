@@ -1,0 +1,26 @@
+use std::cli;
+use std::text;
+use std::fs;
+use network;
+
+fn main() {
+    let args = cli_args();
+    if args_len(args) != 1 { stderr_line("Usage: freeze model.bt"); process_exit(2); }
+    let rows = text_lines(read_text(args_at(args, 0)));
+    if args_len(rows) != 2 || args_at(rows, 0) != bt_model_key() { stderr_line("Incompatible checkpoint"); process_exit(2); }
+    let weights = text_split(args_at(rows, 1), ",");
+    if args_len(weights) != bt_parameters() { stderr_line("Unexpected parameter count"); process_exit(2); }
+    println!("// Generated from the native BlyxTorch checkpoint by model/freeze.blyx.");
+    println!("pub fn spoke_weights() -> vector {");
+    print!("    [");
+    let mut i = 0;
+    while i < args_len(weights) {
+        let weight = args_at(weights, i);
+        if !text_is_number(weight) { stderr_line("Non-finite checkpoint weight"); process_exit(2); }
+        if i > 0 { print!(","); }
+        if i % 6 == 0 { println!(); print!("        "); } else { print!(" "); }
+        print!(weight);
+        i += 1;
+    }
+    println!(); println!("    ]"); println!("}");
+}

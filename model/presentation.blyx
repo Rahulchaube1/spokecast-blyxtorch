@@ -1,0 +1,57 @@
+use std::cli;
+use std::text;
+
+pub fn hour_text(hour: i64) -> str {
+    let value = text_concat(int_text(hour), ":00");
+    if hour < 10 { return text_concat("0", value); }
+    value
+}
+
+pub fn weather_text(weather: i64) -> str {
+    if weather == 1 { return "Clear"; }
+    if weather == 2 { return "Mist"; }
+    "Light rain/snow"
+}
+
+pub fn day_text(workday: i64) -> str {
+    if workday == 1 { return "Workday"; }
+    "Weekend / holiday"
+}
+
+pub fn scenario_title(month: i64, workday: i64, weather: i64, celsius: i64) -> str {
+    let months = text_split("January,February,March,April,May,June,July,August,September,October,November,December", ",");
+    let mut parts = args_push(args_new(), args_at(months, month - 1));
+    parts = args_push(parts, day_text(workday)); parts = args_push(parts, weather_text(weather));
+    args_join(args_push(parts, text_concat(int_text(celsius), " °C")), " · ")
+}
+
+pub fn grouped_count(count: i64) -> str {
+    if count < 1000 { return int_text(count); }
+    let last = count % 1000;
+    let mut tail = int_text(last);
+    if last < 10 { tail = text_concat("00", tail); }
+    else { if last < 100 { tail = text_concat("0", tail); } }
+    text_concat(text_concat(grouped_count(count / 1000), ","), tail)
+}
+
+pub fn table_row(hour: i64, count: i64) -> str {
+    let start = text_concat("<tr><th scope='row'>", hour_text(hour));
+    let cells = text_concat(text_concat(start, "</th><td>"), grouped_count(count));
+    text_concat(cells, "</td></tr>")
+}
+
+pub fn chart_bar(hour: i64, count: str, label: str, maximum: i64, peak_hour: i64) -> str {
+    let mut pieces = args_push(args_new(), "<button type='button' class='bar-button");
+    if hour == peak_hour { pieces = args_push(pieces, " peak"); }
+    pieces = args_push(pieces, "' data-hour='");
+    pieces = args_push(pieces, int_text(hour));
+    pieces = args_push(pieces, "' aria-label='");
+    pieces = args_push(pieces, hour_text(hour));
+    pieces = args_push(pieces, ", ");
+    pieces = args_push(pieces, label);
+    pieces = args_push(pieces, " estimated rides' tabindex='-1'><span aria-hidden='true' style='--height:calc(100% * ");
+    pieces = args_push(pieces, count);
+    pieces = args_push(pieces, " / ");
+    pieces = args_push(pieces, int_text(maximum));
+    args_join(args_push(pieces, ")'></span></button>"), "")
+}

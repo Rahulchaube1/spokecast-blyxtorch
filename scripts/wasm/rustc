@@ -1,0 +1,4 @@
+#!/bin/sh
+# blyxc sends its lowered program to rustc on stdin. Append the browser ABI.
+set -eu
+cat - "$SPOKE_WASM_ABI" | "$SPOKE_REAL_RUSTC" "$@" --target wasm32-unknown-unknown --crate-type cdylib -C panic=abort -C lto=yes

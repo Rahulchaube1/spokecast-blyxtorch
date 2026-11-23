@@ -1,52 +1,46 @@
+// The compiled Blyx program supplies the forecast, chart bars, table rows and CSV.
 const byId = (id) => document.getElementById(id);
 const form = byId("scenario-form");
 const comma = new Intl.NumberFormat("en-US");
 const clock = (hour) => String(hour).padStart(2, "0") + ":00";
-const weatherNames = { 1: "Clear", 2: "Mist", 3: "Light rain/snow" };
-const presets = {
-  commute: { month: 6, workday: 1, weather: 1, celsius: 24 },
-  weekend: { month: 5, workday: 0, weather: 1, celsius: 20 },
-  rain: { month: 10, workday: 1, weather: 3, celsius: 12 },
-};
-let predict;
+let api;
+let applied;
 let forecast;
 let selectedHour = 0;
 let axisMaximum = 1;
+const decoder = new TextDecoder();
+
+function resultText(length) {
+  return decoder.decode(new Uint8Array(api.memory.buffer, api.response_ptr(), length));
+}
 
 function readScenario() {
-  const values = new FormData(form);
-  return {
-    month: Number(values.get("month")),
-    workday: Number(values.get("day")),
-    weather: Number(values.get("weather")),
-    celsius: Number(values.get("temperature")),
-  };
+  const fields = form.elements;
+  return [Number(fields.month.value), Number(fields.day.value),
+          Number(fields.weather.value), Number(fields.temperature.value)];
 }
 
-function setInputs(scenario) {
-  form.elements.month.value = String(scenario.month);
-  form.elements.day.value = String(scenario.workday);
-  form.elements.weather.value = String(scenario.weather);
-  form.elements.temperature.value = String(scenario.celsius);
-  updateControls();
-}
-
-function describe(scenario) {
-  const month = byId("month").options[scenario.month - 1].text;
-  const day = scenario.workday ? "Workday" : "Weekend / holiday";
-  return [month, day, weatherNames[scenario.weather], scenario.celsius + " °C"].join(" · ");
+function applyPreset(id) {
+  if (!api) return;
+  const [month, day, sky, temperature] = JSON.parse(resultText(api.preset(id)));
+  const fields = form.elements;
+  fields.month.value = month;
+  fields.day.value = day;
+  fields.weather.value = sky;
+  fields.temperature.value = temperature;
+  runForecast();
 }
 
 function updateControls() {
-  const scenario = readScenario();
   const range = byId("temperature");
-  range.style.setProperty("--fill", ((scenario.celsius + 8) / 47) * 100 + "%");
-  range.setAttribute("aria-valuetext", scenario.celsius + " degrees Celsius");
-  byId("temp-value").value = scenario.celsius + " °C";
+  const percent = (range.valueAsNumber - Number(range.min)) / (Number(range.max) - Number(range.min));
+  range.style.setProperty("--fill", percent * 100 + "%");
+  range.setAttribute("aria-valuetext", range.value + " degrees Celsius");
+  byId("temp-value").value = range.value + " °C";
   if (!forecast) return;
-  const changed = Object.keys(scenario).some((key) => scenario[key] !== forecast.scenario[key]);
+  const changed = readScenario().some((value, i) => value !== applied[i]);
   const summary = byId("scenario-summary");
-  summary.textContent = describe(forecast.scenario) + (changed ? " · Changes pending" : "");
+  summary.textContent = forecast.summary + (changed ? " · Changes pending" : "");
   summary.classList.toggle("pending", changed);
 }
 
@@ -79,77 +73,57 @@ function renderChart() {
   const bars = byId("bars");
   yAxis.replaceChildren();
   lines.replaceChildren();
-  bars.replaceChildren();
-  const tick = Math.max(25, Math.ceil(forecast.peak / 4 / 25) * 25);
-  axisMaximum = tick * 4;
+  bars.innerHTML = forecast.bars;
+  byId("table-body").innerHTML = forecast.table;
+  axisMaximum = forecast.tick * 4;
   for (let step = 0; step <= 4; step++) {
     const label = document.createElement("span");
     const line = document.createElement("i");
     label.style.bottom = line.style.bottom = step * 25 + "%";
-    label.textContent = comma.format(step * tick);
+    label.textContent = comma.format(step * forecast.tick);
     yAxis.append(label);
     lines.append(line);
   }
-  forecast.counts.forEach((count, hour) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "bar-button" + (hour === forecast.peakHour ? " peak" : "");
-    button.setAttribute("aria-label", clock(hour) + ", " + comma.format(count) + " estimated rides");
-    const bar = document.createElement("span");
-    bar.setAttribute("aria-hidden", "true");
-    bar.style.setProperty("--height", count / axisMaximum * 100 + "%");
-    button.append(bar);
-    button.addEventListener("pointerenter", () => showHour(hour));
-    button.addEventListener("focus", () => selectHour(hour));
-    button.addEventListener("click", () => selectHour(hour));
-    button.addEventListener("keydown", (event) => {
-      let next = hour;
-      if (event.key === "ArrowRight") next = (hour + 1) % 24;
-      else if (event.key === "ArrowLeft") next = (hour + 23) % 24;
-      else if (event.key === "Home") next = 0;
-      else if (event.key === "End") next = 23;
-      else return;
-      event.preventDefault();
-      bars.children[next].focus();
-    });
-    bars.append(button);
-  });
   selectHour(forecast.peakHour);
 }
 
-function renderTable() {
-  const body = byId("table-body");
-  body.replaceChildren();
-  forecast.counts.forEach((count, hour) => {
-    const row = body.insertRow();
-    const heading = document.createElement("th");
-    heading.scope = "row";
-    heading.textContent = clock(hour);
-    row.append(heading);
-    row.insertCell().textContent = comma.format(count);
+const bars = byId("bars");
+for (const eventName of ["pointerover", "focusin", "click"]) {
+  bars.addEventListener(eventName, (event) => {
+    const bar = event.target.closest("button[data-hour]");
+    if (!bar) return;
+    const hour = Number(bar.dataset.hour);
+    if (eventName === "pointerover") showHour(hour);
+    else selectHour(hour);
   });
 }
+bars.addEventListener("keydown", (event) => {
+  const bar = event.target.closest("button[data-hour]");
+  if (!bar) return;
+  let next;
+  if (event.key === "ArrowRight") next = bar.nextElementSibling || bars.firstElementChild;
+  else if (event.key === "ArrowLeft") next = bar.previousElementSibling || bars.lastElementChild;
+  else if (event.key === "Home") next = bars.firstElementChild;
+  else if (event.key === "End") next = bars.lastElementChild;
+  else return;
+  event.preventDefault();
+  next.focus();
+});
 
 function runForecast() {
-  if (!predict) return;
-  const scenario = readScenario();
-  const counts = Array.from({ length: 24 }, (_, hour) => {
-    const estimate = predict(hour, scenario.month, scenario.workday, scenario.weather, scenario.celsius);
-    if (!Number.isFinite(estimate) || estimate < 0) throw new Error("Invalid estimate");
-    return Math.round(estimate);
-  });
-  const peak = Math.max(...counts);
-  const peakHour = counts.indexOf(peak);
-  const total = counts.reduce((sum, trips) => sum + trips, 0);
-  forecast = { scenario, counts, peak, peakHour, total };
-  byId("total").textContent = comma.format(total);
-  byId("peak-hour").textContent = clock(peakHour);
-  byId("peak-count").textContent = comma.format(peak);
+  if (!api) return;
+  const inputs = readScenario();
+  const plan = JSON.parse(resultText(api.plan(2, ...inputs)));
+  if (!plan) throw new Error("Invalid scenario");
+  applied = inputs;
+  forecast = plan;
+  byId("total").textContent = comma.format(plan.total);
+  byId("peak-hour").textContent = clock(plan.peakHour);
+  byId("peak-count").textContent = comma.format(plan.peak);
   updateControls();
   renderChart();
-  renderTable();
   byId("export").disabled = false;
-  byId("notice").textContent = "Forecast updated. " + describe(scenario) + ". " + comma.format(total) + " estimated daily trips.";
+  byId("notice").textContent = "Forecast updated. " + plan.summary + ". " + comma.format(plan.total) + " estimated daily trips.";
 }
 
 function showFormat(chart) {
@@ -162,15 +136,11 @@ function showFormat(chart) {
 
 function exportCsv() {
   if (!forecast) return;
-  const { month, workday, weather, celsius } = forecast.scenario;
-  const records = ["hour_et,estimated_rides,month,workday,weather,temperature_c,network_year"];
-  forecast.counts.forEach((count, hour) => {
-    records.push([clock(hour), count, month, workday, weatherNames[weather], celsius, 2012].join(","));
-  });
-  const url = URL.createObjectURL(new Blob([records.join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" }));
+  const csv = resultText(api.plan(1, ...applied));
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const link = document.createElement("a");
   link.href = url;
-  link.download = "spokecast-" + month + "-" + (workday ? "workday" : "day-off") + ".csv";
+  link.download = "spokecast-" + applied[0] + "-" + (applied[1] ? "workday" : "day-off") + ".csv";
   document.body.append(link);
   link.click();
   link.remove();
@@ -207,13 +177,13 @@ async function loadModel() {
     const response = await fetch("model.wasm");
     if (!response.ok) throw new Error("Model request failed");
     const { instance } = await WebAssembly.instantiate(await response.arrayBuffer(), {});
-    predict = instance.exports.predict;
+    api = instance.exports;
     runForecast();
     byId("run").disabled = false;
     for (const button of document.querySelectorAll("[data-preset]")) button.disabled = false;
     setStatus("ready", "Model ready");
   } catch {
-    predict = undefined;
+    api = undefined;
     byId("load-error").hidden = false;
     setStatus("failed", "Model offline");
   }
@@ -237,9 +207,9 @@ async function loadScores() {
 form.addEventListener("input", updateControls);
 form.addEventListener("change", updateControls);
 form.addEventListener("submit", (event) => { event.preventDefault(); runForecast(); });
-byId("reset").addEventListener("click", () => { setInputs(presets.commute); runForecast(); });
+byId("reset").addEventListener("click", () => applyPreset(0));
 for (const button of document.querySelectorAll("[data-preset]")) {
-  button.addEventListener("click", () => { setInputs(presets[button.dataset.preset]); runForecast(); });
+  button.addEventListener("click", () => applyPreset(Number(button.value)));
 }
 byId("chart-mode").addEventListener("click", () => showFormat(true));
 byId("table-mode").addEventListener("click", () => showFormat(false));

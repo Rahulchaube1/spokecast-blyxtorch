@@ -3,21 +3,11 @@
   "excludedSevereWeather": 3,
   "trainingRows": 15916,
   "testRows": 1460,
-  "trainStart": "2011-01-01",
-  "trainEnd": "2012-10-31",
-  "testStart": "2012-11-01",
-  "testEnd": "2012-12-31",
-  "mae": 51.42613911079944,
-  "rmse": 80.56796858245153,
-  "r2": 0.7866757658984167,
-  "baselineMae": 63.51280908702471,
-  "architecture": [
-    31,
-    16,
-    1
-  ],
-  "epochs": 35,
-  "batch": 64,
-  "rate": 0.003,
-  "seed": 19
+  "trainStart": "2011-01-01", "trainEnd": "2012-10-31",
+  "testStart": "2012-11-01", "testEnd": "2012-12-31",
+  "mae": 51.42613911079942,
+  "rmse": 80.56796858245156,
+  "r2": 0.7866757658984166,
+  "baselineMae": 63.51280908702481,
+  "architecture": [31, 16, 1], "epochs": 35, "batch": 64, "rate": 0.003, "seed": 19
 }
