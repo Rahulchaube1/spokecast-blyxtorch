@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#171d1b">
+  <meta name="description" content="Explore hourly bike-share demand in Washington, D.C. with a neural network trained in BlyxTorch.">
+  <title>SpokeCast | Bike demand forecast</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/barlow-condensed.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-mark" viewBox="0 0 32 32"><circle cx="16" cy="16" r="10.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M16 5.5v7.4m9.1-2.2-6.4 3.7m6.4 6.9-6.4-3.7m-2.7 8.9v-7.4m-9.1 2.2 6.4-3.7m-6.4-6.9 6.4 3.7" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/><circle cx="16" cy="16" r="2.4" fill="currentColor"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M3 6h4m4 0h10M3 12h10m4 0h4M3 18h2m4 0h12"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="7" cy="18" r="2"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M7 3v5m10-5v5M4 10.5h16"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.5 1.5m11.2 11.2 1.5 1.5M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></symbol>
+    <symbol id="i-mist" viewBox="0 0 24 24"><path d="M6 13a4 4 0 1 1 .6-8A5.7 5.7 0 0 1 17 7a3 3 0 1 1 1 6ZM4 17h13m-9 4h12"/></symbol>
+    <symbol id="i-rain" viewBox="0 0 24 24"><path d="M5.7 14a4 4 0 1 1 .6-8 5.5 5.5 0 0 1 10.5 1.2A3.5 3.5 0 1 1 18.3 14M7 17l-1 2m6-2-1 3m6-3-1 2"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 20h18M6 16v-5m5 5V5m5 11V8m4 8v-4"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4h6a3 3 0 0 1 2 1.1A3 3 0 0 1 14 4h6v15h-6a3 3 0 0 0-2 1 3 3 0 0 0-2-1H4Z"/><path d="M12 5v15"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7Z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-bike" viewBox="0 0 24 24"><circle cx="5" cy="16.5" r="3.5"/><circle cx="19" cy="16.5" r="3.5"/><path d="m5 16.5 4-8 5 8H5l8-6m1-5h3l2 7M7 8.5h4"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.3 2"/></symbol>
+    <symbol id="i-trend" viewBox="0 0 24 24"><path d="m3 17 6-6 4 3 7-9m-6 0h6v6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4.5-4.5L12 15l4.5-4.5M4 16v4h16v-4"/></symbol>
+    <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M10 4v16"/></symbol>
+    <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx=".8"/><path d="M9 3v3m6-3v3M9 18v3m6-3v3M3 9h3m-3 6h3m12-6h3m-3 6h3"/></symbol>
+    <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a1.5 1.5 0 0 1 1.5-1.5h5A1.5 1.5 0 0 1 16 5v2M3 12a24 24 0 0 0 18 0"/></symbol>
+    <symbol id="i-coffee" viewBox="0 0 24 24"><path d="M3 9h13v5a6 6 0 0 1-6 6H9a6 6 0 0 1-6-6Zm13 1h2a2.5 2.5 0 0 1 0 5h-2M6 4v2m4-3v3m4-2v2"/></symbol>
+  </svg>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="masthead">
+    <div class="shell nav-row">
+      <a class="brand" href="#forecast" aria-label="SpokeCast forecast"><span class="brand-symbol"><svg aria-hidden="true"><use href="#i-mark"/></svg></span>SpokeCast</a>
+      <nav aria-label="Primary">
+        <a href="#forecast" id="nav-forecast" aria-current="page">Forecast</a>
+        <a href="#model" id="nav-model">Model notes</a>
+      </nav>
+      <span class="status" id="model-status" role="status"><span class="status-light"></span><span>Loading model</span></span>
+    </div>
+  </header>
+  <main class="shell" id="main">
+    <section class="hero" aria-labelledby="page-title">
+      <img class="hero-image" src="assets/bikeshare-dc.webp" alt="" fetchpriority="high">
+      <div class="hero-scrim"></div>
+      <div class="hero-content">
+        <div class="hero-location"><svg class="icon" aria-hidden="true"><use href="#i-pin"/></svg> Washington, D.C.</div>
+        <h1 id="page-title">Bike demand forecast<span>.</span></h1>
+        <p>Explore how weather and working days shape ridership across the Capital Bikeshare network.</p>
+      </div>
+      <div class="hero-data"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg> 2011–2012 data</div>
+    </section>
+    <section id="forecast-view" aria-label="Forecast workspace">
+      <div id="load-error" class="error" role="alert" hidden>SpokeCast couldn’t load the model. <button type="button" id="retry">Try again</button></div>
+      <div class="workspace">
+        <form id="scenario-form" class="panel inputs">
+          <div class="panel-heading">
+            <h2><svg class="section-icon" aria-hidden="true"><use href="#i-sliders"/></svg> Scenario inputs</h2>
+            <button class="icon-button" id="reset" type="button" title="Restore default scenario" aria-label="Restore default scenario"><svg class="icon"><use href="#i-reset"/></svg></button>
+          </div>
+          <div class="input-body">
+            <fieldset><legend>Day type</legend><div class="day-options">
+              <label><input type="radio" name="day" value="1" checked><span>Workday</span></label>
+              <label><input type="radio" name="day" value="0"><span>Weekend / holiday</span></label>
+            </div></fieldset>
+            <label class="field"><span>Month</span><span class="select-wrap"><svg class="icon"><use href="#i-calendar"/></svg>
+              <select id="month" name="month">
+                <option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6" selected>June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+              </select><svg class="icon dropdown-icon"><use href="#i-chevron"/></svg></span></label>
+            <fieldset><legend>Weather</legend><div class="weather-options">
+              <label><input type="radio" name="weather" value="1" checked><span><svg class="icon"><use href="#i-sun"/></svg>Clear</span></label>
+              <label><input type="radio" name="weather" value="2"><span><svg class="icon"><use href="#i-mist"/></svg>Mist</span></label>
+              <label title="Light rain or snow"><input type="radio" name="weather" value="3"><span><svg class="icon"><use href="#i-rain"/></svg>Rain/snow</span></label>
+            </div></fieldset>
+            <div class="temp-field">
+              <div class="temp-label"><label for="temperature">Air temperature</label><output for="temperature" id="temp-value">24 °C</output></div>
+              <input id="temperature" name="temperature" type="range" min="-8" max="39" step="1" value="24">
+              <div class="range-labels" aria-hidden="true"><span>−8 °C</span><span>39 °C</span></div>
+            </div>
+            <button class="primary" id="run" type="submit" disabled><svg class="icon"><use href="#i-play"/></svg>Run forecast</button>
+          </div>
+        </form>
+        <div class="results">
+          <div class="results-header"><div><h2>Forecast overview</h2><p id="scenario-summary">June · Workday · Clear · 24 °C</p></div><button id="export" class="export" type="button" disabled><svg class="icon"><use href="#i-download"/></svg>Export CSV</button></div>
+          <div class="metrics" aria-live="polite" aria-atomic="true">
+            <div class="metric"><div class="metric-label"><svg class="icon"><use href="#i-bike"/></svg>Daily trips</div><strong id="total">—</strong><small>estimated rides</small></div>
+            <div class="metric"><div class="metric-label"><svg class="icon"><use href="#i-clock"/></svg>Busiest hour</div><strong id="peak-hour">—</strong><small>local time in D.C.</small></div>
+            <div class="metric"><div class="metric-label"><svg class="icon"><use href="#i-trend"/></svg>Peak demand</div><strong id="peak-count">—</strong><small>rides in one hour</small></div>
+          </div>
+          <section class="panel hourly" aria-labelledby="hourly-heading">
+            <div class="chart-heading"><h2 id="hourly-heading">Hourly ridership</h2><div class="view-controls" aria-label="Display format"><button type="button" id="chart-mode" aria-pressed="true" aria-label="Show chart" title="Show chart"><svg class="icon"><use href="#i-chart"/></svg></button><button type="button" id="table-mode" aria-pressed="false" aria-label="Show table" title="Show table"><svg class="icon"><use href="#i-table"/></svg></button></div></div>
+            <div id="chart-view">
+              <span class="axis-title">Trips per hour</span>
+              <div class="chart-layout">
+                <div class="y-axis" id="y-axis" aria-hidden="true"></div>
+                <div class="plot-wrap">
+                  <div class="plot" id="plot" role="group" aria-label="Hourly trip estimates. Use left and right arrow keys to explore hours."><div class="gridlines" id="gridlines" aria-hidden="true"></div><div class="bars" id="bars"></div><div class="bubble" id="bubble" aria-hidden="true" hidden></div></div>
+                  <div class="x-axis" aria-hidden="true"><span>00:00</span><span>04:00</span><span>08:00</span><span>12:00</span><span>16:00</span><span>20:00</span></div>
+                </div>
+              </div>
+              <div class="chart-foot"><span class="legend"><i></i>Estimated rides</span><span>Local time (ET)</span></div>
+            </div>
+            <div id="table-view" class="table-view" hidden><table><caption class="sr-only">Hourly ride estimates in Washington, D.C. local time</caption><thead><tr><th scope="col">Local time (ET)</th><th scope="col">Estimated rides</th></tr></thead><tbody id="table-body"></tbody></table></div>
+          </section>
+        </div>
+      </div>
+      <div id="notice" class="sr-only" role="status"></div>
+      <section class="examples" aria-labelledby="examples-title">
+        <div class="examples-heading"><h2 id="examples-title">Try a scenario</h2></div>
+        <div class="preset-list">
+          <button type="button" data-preset="commute"><span class="preset-icon"><svg class="icon"><use href="#i-briefcase"/></svg></span><span><strong>Summer commute</strong><small>June · Clear · 24 °C</small></span></button>
+          <button type="button" data-preset="weekend"><span class="preset-icon"><svg class="icon"><use href="#i-coffee"/></svg></span><span><strong>Weekend outing</strong><small>May · Clear · 20 °C</small></span></button>
+          <button type="button" data-preset="rain"><span class="preset-icon"><svg class="icon"><use href="#i-rain"/></svg></span><span><strong>Rainy workday</strong><small>October · Rain/snow · 12 °C</small></span></button>
+        </div>
+      </section>
+    </section>
+    <section id="model-view" class="model-view" aria-labelledby="notes-heading" hidden>
+      <div class="notes-heading"><div><h2 id="notes-heading">Model notes</h2><p>How SpokeCast estimates a day of bike-share trips.</p></div><a class="export source-link" href="spokecast-project.zip" download><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download project</a></div>
+      <div class="notes-grid">
+        <section class="panel note-card"><h3>Training and inference</h3><p>A 31–16–1 dense neural network learns hourly trip counts from hour, month, day type, weather, temperature and study year. Its 529 parameters were fitted in BlyxTorch using Adam over 35 epochs.</p><p>The browser runs the same Blyx prediction function, compiled to WebAssembly. The 24 estimates use your selected conditions for every hour at 2012 network scale.</p><a href="https://www.blyx-lang.space/packages/blyxtorch" target="_blank" rel="noreferrer">BlyxTorch framework</a></section>
+        <section class="panel note-card"><h3>Held-out performance</h3><p>The model trained on <b id="train-rows">—</b> hours from January 2011 through October 2012. Evaluation uses <b id="test-rows">—</b> later hours from November and December 2012.</p><dl class="score-list"><div><dt>Mean absolute error</dt><dd id="mae">—</dd></div><div><dt>Baseline error¹</dt><dd id="baseline">—</dd></div><div><dt>R² score</dt><dd id="r-squared">—</dd></div></dl><small>¹ Mean training ridership for the same hour and day type.</small></section>
+        <section class="panel note-card"><h3>Data and scope</h3><p>The UCI Bike Sharing dataset records system-wide Capital Bikeshare rentals in Washington, D.C. in 2011 and 2012. A workday excludes weekends and holidays. The rain/snow category covers light precipitation. Three severe-weather hours were excluded.</p><p>The estimates describe historical demand. Present-day ridership, individual stations and exceptional events are outside the model’s scope.</p><a href="https://doi.org/10.24432/C5W894" target="_blank" rel="noreferrer">UCI Bike Sharing dataset</a></section>
+        <section class="panel note-card"><h3>Credits</h3><p>Hadi Fanaee-T and João Gama, “Event labeling combining ensemble detectors and background knowledge” (2013). The dataset is available under CC BY 4.0. <a href="https://doi.org/10.1007/s13748-013-0040-3" target="_blank" rel="noreferrer">Research paper</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">Data license</a></p><p>Capital Bikeshare photograph by Tony Webster, resized and cropped for this display under CC BY-SA 4.0. <a href="https://commons.wikimedia.org/wiki/File:Capital_Bikeshare_Washington_DC_Bicycle_Rental_14326445924.jpg" target="_blank" rel="noreferrer">Original photograph</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">Photo license</a></p></section>
+      </div>
+    </section>
+  </main>
+  <footer class="shell footer"><span><svg class="icon"><use href="#i-chip"/></svg>Built with BlyxTorch</span><span>Capital Bikeshare · 2011–2012</span></footer>
+  <noscript><p>Enable JavaScript to run the Blyx model in your browser.</p></noscript>
+</body>
+</html>

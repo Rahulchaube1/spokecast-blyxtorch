@@ -1,0 +1,41 @@
+use std::cli;
+use std::text;
+use std::fs;
+use features;
+
+// Convert a raw seven-column scenario table into the BlyxTorch numeric schema.
+fn small_integer(word: str) -> i64 {
+    if !text_is_number(word) { process_exit(2); }
+    let value = text_number(word);
+    let mut n = 0;
+    while n <= 23 {
+        if at([n], 0) == value { return n; }
+        n += 1;
+    }
+    process_exit(2);
+    -1
+}
+
+fn main() {
+    let args = cli_args();
+    if args_len(args) != 1 { stderr_line("Expected a raw scenario CSV path"); process_exit(2); }
+    let rows = text_lines(read_text(args_at(args, 0)));
+    let mut j = 0;
+    while j < 31 {
+        print!("x"); print!(j); print!(",");
+        j += 1;
+    }
+    println!("y0");
+    let mut i = 1;
+    while i < args_len(rows) {
+        let fields = text_split(args_at(rows, i), ",");
+        if args_len(fields) != 7 { stderr_line("Invalid scenario row"); process_exit(2); }
+        let x = spoke_features(small_integer(args_at(fields, 0)), small_integer(args_at(fields, 1)),
+            small_integer(args_at(fields, 2)), small_integer(args_at(fields, 3)), text_number(args_at(fields, 4)),
+            small_integer(args_at(fields, 5)));
+        let mut k = 0;
+        while k < len(x) { print!(at(x, k)); print!(","); k += 1; }
+        println!(text_number(args_at(fields, 6)) / count_scale());
+        i += 1;
+    }
+}

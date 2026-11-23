@@ -1,0 +1,17 @@
+use features;
+use network;
+use checkpoint;
+
+// The planner uses the final study year's network size.
+pub fn estimate(hour: i64, month: i64, workday: i64, weather: i64, celsius: f64) -> f64 {
+    if hour < 0 || hour > 23 || month < 1 || month > 12 || workday < 0 || workday > 1 ||
+        weather < 1 || weather > 3 || !(celsius >= -8.0 && celsius <= 39.0) { return -1.0; }
+    let x = spoke_features(hour, month, workday, weather, celsius, 1);
+    let count = at(bt_predict(spoke_weights(), x), 0) * count_scale();
+    if count < 0.0 { return 0.0; }
+    count
+}
+
+fn main() {
+    println!(estimate(8, 6, 1, 1, 24.0));
+}

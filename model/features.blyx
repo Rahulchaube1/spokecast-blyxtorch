@@ -1,0 +1,23 @@
+// Shared by native training-data preparation and browser prediction.
+// The UCI hourly series maps -8 to 39 degrees Celsius onto 0 to 1.
+fn hour_is(hour: i64, expected: i64) -> f64 {
+    if hour == expected { return 1.0; }
+    0.0
+}
+
+pub fn spoke_features(hour: i64, month: i64, workday: i64, weather: i64, celsius: f64, year_index: i64) -> vector {
+    let sine = [0.0, 0.5, 0.8660254037844386, 1.0, 0.8660254037844386, 0.5, 0.0, -0.5, -0.8660254037844386, -1.0, -0.8660254037844386, -0.5];
+    let cosine = [1.0, 0.8660254037844386, 0.5, 0.0, -0.5, -0.8660254037844386, -1.0, -0.8660254037844386, -0.5, 0.0, 0.5, 0.8660254037844386];
+    [
+        hour_is(hour, 0), hour_is(hour, 1), hour_is(hour, 2), hour_is(hour, 3),
+        hour_is(hour, 4), hour_is(hour, 5), hour_is(hour, 6), hour_is(hour, 7),
+        hour_is(hour, 8), hour_is(hour, 9), hour_is(hour, 10), hour_is(hour, 11),
+        hour_is(hour, 12), hour_is(hour, 13), hour_is(hour, 14), hour_is(hour, 15),
+        hour_is(hour, 16), hour_is(hour, 17), hour_is(hour, 18), hour_is(hour, 19),
+        hour_is(hour, 20), hour_is(hour, 21), hour_is(hour, 22), hour_is(hour, 23),
+        at(sine, month - 1), at(cosine, month - 1), workday,
+        hour_is(weather, 2), hour_is(weather, 3), (celsius + 8.0) / 47.0, year_index
+    ]
+}
+
+pub fn count_scale() -> f64 { 1000.0 }
