@@ -9,8 +9,8 @@ DEST = ROOT / "dist/spokecast-project.zip"
 
 
 def main():
-    sources = [ROOT / "README.md", ROOT / ".gitignore"]
-    for directory in ("model", "scripts", "dist"):
+    sources = [ROOT / name for name in ("README.md", ".gitignore", ".vercelignore", "vercel.json")]
+    for directory in ("model", "scripts", "experiments", "dist"):
         sources.extend(p for p in (ROOT / directory).rglob("*")
                        if p.is_file() and p != DEST and "__pycache__" not in p.parts)
     with tempfile.TemporaryDirectory(dir=ROOT) as temp:

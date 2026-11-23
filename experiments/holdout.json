@@ -1,0 +1,62 @@
+{
+  "holdoutStart": "2012-11-01",
+  "holdoutEnd": "2012-12-31",
+  "trainingHours": 15916,
+  "holdoutHours": 1460,
+  "comparison": {
+    "training_mean": {
+      "hours": 1460,
+      "mae": 140.162299,
+      "rmse": 174.438604,
+      "r2": -1e-06
+    },
+    "hour_and_day_type_mean": {
+      "hours": 1460,
+      "mae": 63.512809,
+      "rmse": 98.047061,
+      "r2": 0.684075
+    },
+    "blyxtorch": {
+      "hours": 1460,
+      "mae": 51.426139,
+      "rmse": 80.567969,
+      "r2": 0.786676
+    }
+  },
+  "modelByGroup": {
+    "workday": {
+      "workday": {
+        "hours": 957,
+        "mae": 44.480429,
+        "rmse": 71.447409,
+        "r2": 0.842032
+      },
+      "weekend_or_holiday": {
+        "hours": 503,
+        "mae": 64.640939,
+        "rmse": 95.546141,
+        "r2": 0.64704
+      }
+    },
+    "weather": {
+      "clear": {
+        "hours": 822,
+        "mae": 54.29244,
+        "rmse": 85.592351,
+        "r2": 0.772258
+      },
+      "mist": {
+        "hours": 541,
+        "mae": 45.105949,
+        "rmse": 69.60102,
+        "r2": 0.830463
+      },
+      "light_rain_or_snow": {
+        "hours": 97,
+        "mae": 62.386173,
+        "rmse": 92.745498,
+        "r2": 0.37038
+      }
+    }
+  }
+}
